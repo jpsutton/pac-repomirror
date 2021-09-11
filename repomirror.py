@@ -45,6 +45,7 @@ class PacRepoMirror (MLArgParser):
       self.repos[db.name] = db
 
   def mirror_package (self, repo_name:str, package_name:str, ignore_deps=True):
+    """ Mirror a package from the specified repository to the local repository """
     self.__initialize__()
 
     if repo_name not in self.repos:
