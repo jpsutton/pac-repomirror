@@ -3,8 +3,13 @@
 import os
 import sys
 import shutil
-import pyalpm
+import platform
+import subprocess
+import glob
 from pprint import pprint
+
+import pyalpm
+
 from pycman_config import PacmanConfig
 from mlargparser.mlargparser import MLArgParser
 
@@ -19,6 +24,10 @@ class PacRepoMirror (MLArgParser):
   """ A selective repository mirroring tool for Pacman """
 
   conf_file = os.path.join(PacOptions.root, "etc/pacman.conf")
+
+  pac_tools = {
+    "repo-add": None
+  }
   
   argDesc = {
     "package_name": "Name of a package to mirror to the local repository",
@@ -35,8 +44,31 @@ class PacRepoMirror (MLArgParser):
       os.makedirs(os.path.dirname(PacRepoMirror.conf_file))
       shutil.copytree("root.sample/etc", f"{PacOptions.root}/etc", dirs_exist_ok=True)
 
+  def __check_tooling__(self):
+    delim = ';' if platform.system() == "Windows" else ':'
+    path_dirs = os.environ['PATH'].split(delim)
+
+    for directory in path_dirs:
+      if not os.path.exists(directory):
+        continue
+      
+      for name in os.listdir(directory):
+        if name not in self.pac_tools or self.pac_tools[name] is not None:
+          continue
+        
+        self.pac_tools[name] = os.path.join(directory, name)
+
+    for tool, full_path in self.pac_tools.items():
+      if full_path is None:
+        sys.stderr.write(f"ERROR: could not locate {tool} in the current path.\n")
+
+  def __update_localrepo_metadata__ (self):
+    p = subprocess.run([self.pac_tools['repo-add'], os.path.join(PacOptions.cachedir, "repo.db.tar.gz")] + glob.glob(os.path.join(PacOptions.cachedir, "*.pkg.*")))
+    p.check_returncode()
+
   def __init__ (self):
     PacRepoMirror.__setup_filesystem__()
+    self.__check_tooling__()
     self.alpmcfg = PacmanConfig(conf=PacRepoMirror.conf_file)
     self.handle = self.alpmcfg.initialize_alpm()
     self.repos = dict()
@@ -62,6 +94,9 @@ class PacRepoMirror (MLArgParser):
     transaction.add_pkg(repo.get_pkg(package_name))
     transaction.prepare()
     transaction.commit()
+
+    # Update the local repo metadata
+    self.__update_localrepo_metadata__()
 
 if __name__ == '__main__':
   PacRepoMirror()
