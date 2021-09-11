@@ -35,7 +35,7 @@ class PacRepoMirror (MLArgParser):
       os.makedirs(os.path.dirname(PacRepoMirror.conf_file))
       shutil.copytree("root.sample/etc", f"{PacOptions.root}/etc", dirs_exist_ok=True)
 
-  def __initialize__ (self):
+  def __init__ (self):
     PacRepoMirror.__setup_filesystem__()
     self.alpmcfg = PacmanConfig(conf=PacRepoMirror.conf_file)
     self.handle = self.alpmcfg.initialize_alpm()
@@ -44,9 +44,10 @@ class PacRepoMirror (MLArgParser):
     for db in self.handle.get_syncdbs():
       self.repos[db.name] = db
 
+    super().__init__()
+
   def mirror_package (self, repo_name:str, package_name:str, ignore_deps=True):
     """ Mirror a package from the specified repository to the local repository """
-    self.__initialize__()
 
     if repo_name not in self.repos:
       sys.stderr.write(f"ERROR: {repo_name} is not a configured repository\n")
