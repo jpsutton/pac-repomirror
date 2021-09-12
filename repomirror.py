@@ -17,6 +17,7 @@ from mlargparser.mlargparser import MLArgParser
 import code
 
 class PacOptions:
+  local_name = "arch-upstream"
   root = "./alpmroot"
   dbpath = "./alpmdb"
   cachedir = "./alpmcache"
@@ -68,7 +69,7 @@ class PacRepoMirror (MLArgParser):
 
   def __update_localrepo_metadata__ (self, transaction):
     file_list = [ os.path.join(PacOptions.cachedir, package.filename) for package in transaction.to_add ]
-    p = subprocess.run([self.pac_tools['repo-add'], "-R", os.path.join(PacOptions.cachedir, "repo.db.tar.gz")] + file_list)
+    p = subprocess.run([self.pac_tools['repo-add'], "-R", os.path.join(PacOptions.cachedir, f"{PacOptions.local_name}.db.tar.gz")] + file_list)
     p.check_returncode()
 
   def __init__ (self):
