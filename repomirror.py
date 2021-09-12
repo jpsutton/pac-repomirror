@@ -127,11 +127,12 @@ class PacRepoMirror (MLArgParser):
 
       transaction.prepare()
       transaction.commit()
+
+      # Update the local repo metadata
+      self.__update_localrepo_metadata__(transaction)
     finally:
       transaction.release()
 
-    # Update the local repo metadata
-    self.__update_localrepo_metadata__(transaction)
 
   def add (self, repo_name:str, package_name:str, no_sync:bool = False):
     """ Mirror a package from the specified repository to the local repository """
