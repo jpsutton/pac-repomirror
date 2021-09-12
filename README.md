@@ -35,7 +35,9 @@ Since the application creates a local Pacman repository, you'll want to add a bl
   ```
   
 Individual packages can be added to the local repository like so:
-  ```python repomirror.py add -p <package_name> -r <repo_name>```
+  ```
+  python repomirror.py add -p <package_name> -r <repo_name>
+  ```
   
 So, if you were running a Manjaro and wanted to install linux-zen (which is available in the ArchLinux but not Manjaro respositories), you'd do run the following:
   ```
