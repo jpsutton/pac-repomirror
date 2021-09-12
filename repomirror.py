@@ -2,11 +2,10 @@
 
 import os
 import sys
+import json
 import shutil
 import platform
 import subprocess
-import glob
-import json
 from pprint import pprint
 
 import pyalpm
@@ -103,6 +102,8 @@ class PacRepoMirror (MLArgParser):
       self.tracked = list()
 
   def sync (self):
+    """ Mirror any updates for tracked packages to local repository """
+
     for name, repo in self.repos.items():
       repo.update(True)
 
