@@ -27,7 +27,7 @@ By default, a standard set of ArchLinux repositories are configured (core, extra
 ## How to Use
 Note: The examples in this section assume you've installed the application in `/opt/pac-repomirror`, so be sure to adjust paths as needed if you installed it elsewhere.
 
-Since the application creates a local Pacman repository, you'll want to add a block like the following:
+Since the application creates a local Pacman repository, you'll want to add a block like the following to `/etc/pacman.conf`:
   ```
   [arch-upstream]
   SigLevel = Optional TrustAll
