@@ -1,3 +1,4 @@
 [submodule "mlargparser"]
 	path = mlargparser
 	url = https://github.com/jpsutton/mlargparser
+	branch = main
