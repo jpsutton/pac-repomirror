@@ -3,6 +3,7 @@
 # Python standard libs
 import os
 import sys
+import glob
 import json
 import shutil
 import platform
@@ -99,7 +100,7 @@ class PacRepoMirror (MLArgParser):
 
   # Save our tracked package list to disk
   def __save_tracked__ (self):
-    if self.tracked and len(self.tracked):
+    if self.tracked is not None:
       with open("./tracked.json", "w") as outfile:
         outfile.write(json.dumps(self.tracked))
 
@@ -200,22 +201,31 @@ class PacRepoMirror (MLArgParser):
     # Extract the first entry
     tracked_entry = tracked_entry[0]
 
-    # Update the remote repo that contains the specified package
-    for name, repo in self.repos.items():
-      if name == tracked_entry['repo']:
-        repo.update(True)
-
     # Get the package record from pyalpm
     pkg = self.repos[tracked_entry['repo']].get_pkg(package_name)
 
     # Delete the local package file
-    os.unlink(os.path.join(PacOptions.cachedir, pkg.filename))
+    try:
+      os.unlink(os.path.join(PacOptions.cachedir, pkg.filename))
+    except FileNotFoundError:
+      pass
+
+    # Delete existing repo metadata files (if you know a better way to remove a package from the metadata, please fix and submit a PR)
+    for file in glob.glob(os.path.join(PacOptions.cachedir, PacOptions.local_name + "*")):
+      os.unlink(file)
 
     # Remove the tracked entry for the specified package
     self.tracked.remove(tracked_entry)
     self.__save_tracked__()
-    self.__update_localrepo_metadata__()
 
+    # Update the local repo metadata
+    transaction = self.handle.init_transaction(downloadonly=True, nodeps=True)
+
+    try:
+      self.__update_localrepo_metadata__(transaction)
+    finally:
+      # Gracefully finish the transaction
+      transaction.release()
 
 if __name__ == '__main__':
   PacRepoMirror()
