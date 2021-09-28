@@ -64,11 +64,11 @@ class PacRepoMirror (MLArgParser):
     for directory in path_dirs:
       if not os.path.exists(directory):
         continue
-      
+
       for name in os.listdir(directory):
         if name not in self.pac_tools or self.pac_tools[name] is not None:
           continue
-        
+
         self.pac_tools[name] = os.path.join(directory, name)
 
     for tool, full_path in self.pac_tools.items():
@@ -184,6 +184,38 @@ class PacRepoMirror (MLArgParser):
     # Perform a package sync, unless the user said no
     if not no_sync:
       self.sync()
+
+  # Remove a package from being tracked and from the local repo
+  def remove (self, package_name:str):
+    """ Remove a package from being tracked and from the local repository """
+
+    # Get the tracked entry for the specified package
+    tracked_entry = list(filter(lambda x: x['name'] == package_name, self.tracked))
+
+    # Error out if there aren't any matching tracked packages
+    if not(len(tracked_entry)):
+      sys.stderr.write(f"ERROR: {package_name} is not a tracked package\n")
+      sys.exit(3)
+
+    # Extract the first entry
+    tracked_entry = tracked_entry[0]
+
+    # Update the remote repo that contains the specified package
+    for name, repo in self.repos.items():
+      if name == tracked_entry['repo']:
+        repo.update(True)
+
+    # Get the package record from pyalpm
+    pkg = self.repos[tracked_entry['repo']].get_pkg(package_name)
+
+    # Delete the local package file
+    os.unlink(os.path.join(PacOptions.cachedir, pkg.filename))
+
+    # Remove the tracked entry for the specified package
+    self.tracked.remove(tracked_entry)
+    self.__save_tracked__()
+    self.__update_localrepo_metadata__()
+
 
 if __name__ == '__main__':
   PacRepoMirror()
