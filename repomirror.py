@@ -8,10 +8,11 @@ import json
 import shutil
 import platform
 import subprocess
-from pprint import pprint
+import logging
 
 # Third-party libs
 import pyalpm
+from systemd.journal import JournalHandler
 
 # Local libraries
 from pycman_config import PacmanConfig # This one is taken from pyalpm's sample app called "pycman", but it's not provided by merely installing pyalpm
@@ -74,7 +75,7 @@ class PacRepoMirror (MLArgParser):
 
     for tool, full_path in self.pac_tools.items():
       if full_path is None:
-        sys.stderr.write(f"ERROR: could not locate {tool} in the current path.\n")
+        self.logger.error(f"could not locate {tool} in the current path.\n")
 
   # Use the repo-add CLI tool to generate local repo metadata for any packages added during a sync
   def __update_localrepo_metadata__ (self, transaction):
@@ -84,6 +85,7 @@ class PacRepoMirror (MLArgParser):
 
   # Class initializer
   def __init__ (self):
+    self.__setup_logging__()
     PacRepoMirror.__setup_filesystem__()
     self.__check_tooling__()
     self.alpmcfg = PacmanConfig(conf=PacRepoMirror.conf_file)
@@ -97,6 +99,12 @@ class PacRepoMirror (MLArgParser):
       self.__read_tracked__()
 
     super().__init__()
+
+  def __setup_logging__ (self):
+    self.logger = logging.getLogger('demo')
+    self.logger.addHandler(JournalHandler())
+    self.logger.setLevel(logging.INFO)
+    #self.logger.info("sent to journal")
 
   # Save our tracked package list to disk
   def __save_tracked__ (self):
@@ -131,16 +139,16 @@ class PacRepoMirror (MLArgParser):
 
         # Handle each possible case of (1) package doesn't exist (2) already Downloaded (3) needs to be sync'd to local repo
         if pkg is None:
-          sys.stderr.write(f"WARNING: {record['name']} is no longer present in repo {record['repo']}\n")
+          self.logger.warn(f"{record['name']} is no longer present in repo {record['repo']}\n")
         elif os.path.exists(os.path.join(PacOptions.cachedir, pkg.filename)):
-          sys.stderr.write(f"DEBUG: {record['name']} is already downloaded. Skipping.\n")
+          self.logger.debug(f"{record['name']} is already downloaded. Skipping.\n")
         else:
           transaction.add_pkg(pkg)
           added_count += 1
 
       # If no packages were added to the transaction, then we don't need to move forward with the sync
       if not added_count:
-        sys.stderr.write(f"DEBUG: no packages were added to sync transaction.\n")
+        self.logger.debug("no packages were added to sync transaction.\n")
         return
 
       # Perform the sync
@@ -159,7 +167,7 @@ class PacRepoMirror (MLArgParser):
 
     # Check that the specified repo is configured
     if repo_name not in self.repos:
-      sys.stderr.write(f"ERROR: {repo_name} is not a configured repository\n")
+      self.logger.error(f"{repo_name} is not a configured repository\n")
       sys.exit(1)
 
     # Update the repo package metadata
@@ -171,7 +179,7 @@ class PacRepoMirror (MLArgParser):
 
     # Make sure the package exists in the repo
     if pkg is None:
-      sys.stderr.write(f"ERROR: {package_name} was not found in repo {repo_name}\n")
+      self.logger.error(f"{package_name} was not found in repo {repo_name}\n")
       sys.exit(2)
 
     # Add package to tracked list if it's not already present; save the tracked list to disk
@@ -195,7 +203,7 @@ class PacRepoMirror (MLArgParser):
 
     # Error out if there aren't any matching tracked packages
     if not(len(tracked_entry)):
-      sys.stderr.write(f"ERROR: {package_name} is not a tracked package\n")
+      self.logger.error(f"{package_name} is not a tracked package\n")
       sys.exit(3)
 
     # Extract the first entry
