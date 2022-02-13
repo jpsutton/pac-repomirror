@@ -12,7 +12,7 @@ import logging
 
 # Third-party libs
 import pyalpm
-from systemd.journal import JournalHandler
+from cysystemd import journal
 
 # Local libraries
 from pycman_config import PacmanConfig # This one is taken from pyalpm's sample app called "pycman", but it's not provided by merely installing pyalpm
@@ -101,10 +101,23 @@ class PacRepoMirror (MLArgParser):
     super().__init__()
 
   def __setup_logging__ (self):
-    self.logger = logging.getLogger('demo')
-    self.logger.addHandler(JournalHandler())
+    self.logger = logging.getLogger('pac-repomirror')
+    handlers = list()
+    log_delim = " :: "
+
+    # Log line format
+    formatter = logging.Formatter(log_delim.join(['%(asctime)s', '%(name)s', '%(levelname)s', '%(message)s']))
+
+    # Logging handlers for stderr and journald
+    handlers.append(logging.StreamHandler(sys.stderr))
+    handlers.append(journal.JournaldLogHandler())
+
+    # Add all handlers to the logger
+    for handler in handlers:
+      handler.setFormatter(formatter)
+      self.logger.addHandler(handler)
+
     self.logger.setLevel(logging.INFO)
-    #self.logger.info("sent to journal")
 
   # Save our tracked package list to disk
   def __save_tracked__ (self):
